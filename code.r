@@ -75,20 +75,48 @@ colnames(S) <- dates
 # Time index
 time_points <- 1:nrow(K)
 
-nbasis <- 20
+# Create basis
+nbasis <- 50
 rangeval <- c(min(time_points), max(time_points))
+basis <- create.bspline.basis(rangeval = rangeval,
+                              nbasis = nbasis,norder = 6)
 
-basis <- create.fourier.basis(rangeval = rangeval,
-                              nbasis = nbasis)
+# # Add roughness penalty
+# fdPar_obj <- fdPar(basis, Lfdobj = 2, lambda = NULL)
+# 
+# # Smooth each sector return series
+# fd_obj <- smooth.basis(time_points,
+#                        K,
+#                        fdPar_obj)
+# 
+# plot(fd_obj, xlab="Time", ylab="Similarity",
+#      main="Smoothed Similarity Curves")
 
+# Grid search over lambda values
+lambda_vec <- 10^seq(-10, 10, by = 0.5)
+gcv_mean <- numeric(length(lambda_vec))
 
-# Smooth each sector return series
-fd_obj <- smooth.basis(time_points,
-                       K,
-                       basis)$fd
+for (i in seq_along(lambda_vec)) {
+  fdPar_i <- fdPar(basis, Lfdobj = 2, lambda = lambda_vec[i])
+  smooth_i <- smooth.basis(time_points, K, fdPar_i)
+  gcv_mean[i] <- mean(smooth_i$gcv)  # average GCV across all curves
+}
 
-plot(fd_obj, xlab="Time", ylab="Similarity",
-     main="Smoothed Similarity Curves")
+# Select optimal lambda
+lambda_opt <- lambda_vec[which.min(gcv_mean)]
+
+# Plot GCV curve
+plot(log10(lambda_vec), gcv_mean, type = "b",
+     xlab = "log10(lambda)", ylab = "Mean GCV",
+     main = "GCV Optimization")
+abline(v = log10(lambda_opt), col = "red", lty = 2)
+lambda_opt
+# Final smooth with optimal lambda
+fdPar_opt <- fdPar(basis, Lfdobj = 2, lambda = lambda_opt)
+fd_obj <- smooth.basis(time_points, K, fdPar_opt)$fd
+
+plot(fd_obj, xlab = "Time", ylab = "Similarity",
+     main = "Smoothed Similarity Curves (GCV-optimized)")
 
 
 # Mean / Variance
