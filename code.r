@@ -79,8 +79,10 @@ time_points <- 1:nrow(K)
 nbasis <- 50
 rangeval <- c(min(time_points), max(time_points))
 basis <- create.bspline.basis(rangeval = rangeval,
-                              nbasis = nbasis,norder = 6)
+                              nbasis = nbasis,
+                              norder = 6)
 
+plot(basis)
 # # Add roughness penalty
 # fdPar_obj <- fdPar(basis, Lfdobj = 2, lambda = NULL)
 # 
@@ -111,6 +113,7 @@ plot(log10(lambda_vec), gcv_mean, type = "b",
      main = "GCV Optimization")
 abline(v = log10(lambda_opt), col = "red", lty = 2)
 lambda_opt
+
 # Final smooth with optimal lambda
 fdPar_opt <- fdPar(basis, Lfdobj = 2, lambda = lambda_opt)
 fd_obj <- smooth.basis(time_points, K, fdPar_opt)$fd
@@ -120,8 +123,26 @@ plot(fd_obj, xlab = "Time", ylab = "Similarity",
 
 
 # Mean / Variance
-plot(mean.fd(fd_obj))
-plot(std.fd(fd_obj))
+# plot(mean.fd(fd_obj))
+# plot(std.fd(fd_obj))
+
+# Covariance Surface
+time        = seq(1,314,length=100) # fix this
+logprecvar.bifd = var.fd(fd_obj)
+
+logprecvar_mat  = eval.bifd(time, time,
+                            logprecvar.bifd)
+
+persp(time, time, logprecvar_mat,
+      theta=-45, phi=25, r=3, expand = 0.5,
+      ticktype='detailed',
+      xlab="Month",
+      ylab="Month",
+      zlab="Variance")
+
+contour(time, time, logprecvar_mat,
+        xlab="Month",
+        ylab="Month")
 
 
 # FPCA
