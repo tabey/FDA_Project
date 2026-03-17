@@ -80,19 +80,9 @@ nbasis <- 50
 rangeval <- c(min(time_points), max(time_points))
 basis <- create.bspline.basis(rangeval = rangeval,
                               nbasis = nbasis,
-                              norder = 6)
+                              norder = 4)
 
 plot(basis)
-# # Add roughness penalty
-# fdPar_obj <- fdPar(basis, Lfdobj = 2, lambda = NULL)
-# 
-# # Smooth each sector return series
-# fd_obj <- smooth.basis(time_points,
-#                        K,
-#                        fdPar_obj)
-# 
-# plot(fd_obj, xlab="Time", ylab="Similarity",
-#      main="Smoothed Similarity Curves")
 
 # Grid search over lambda values
 lambda_vec <- 10^seq(-10, 10, by = 0.5)
@@ -118,16 +108,22 @@ lambda_opt
 fdPar_opt <- fdPar(basis, Lfdobj = 2, lambda = lambda_opt)
 fd_obj <- smooth.basis(time_points, K, fdPar_opt)$fd
 
-plot(fd_obj, xlab = "Time", ylab = "Similarity",
+# Individual curves
+# plotfit.fd(K, time_points, fd_obj)
+
+plot(fd_obj, lwd=0.5, xlab = "Time", ylab = "Similarity",
      main = "Smoothed Similarity Curves (GCV-optimized)")
 
-
 # Mean / Variance
-# plot(mean.fd(fd_obj))
-# plot(std.fd(fd_obj))
+meanfd  = mean.fd(fd_obj)
+stdfd = std.fd(fd_obj)
+
+lines(meanfd, lwd=4, lty=1, col=1)
+lines(meanfd-stdfd, lwd=4, lty=2, col=1)
+lines(meanfd+stdfd, lwd=4, lty=2, col=1)
 
 # Covariance Surface
-time        = seq(1,314,length=100) # fix this
+time        = seq(1,314,length=100)
 logprecvar.bifd = var.fd(fd_obj)
 
 logprecvar_mat  = eval.bifd(time, time,
@@ -141,11 +137,23 @@ persp(time, time, logprecvar_mat,
       zlab="Variance")
 
 contour(time, time, logprecvar_mat,
+        col=terrain.colors(12),
         xlab="Month",
-        ylab="Month")
+        ylab="Month",
+        lwd=2,
+        labcex=1)
 
 
 # FPCA
-nharm = 4
+nharm = 3
 pcalist = pca.fd(fd_obj, nharm, centerfns = TRUE)
 plot(pcalist)
+
+plot(pcalist$harmonics, lwd=2)
+
+# Rotation
+varmx <- varmx.pca.fd(pcalist)
+plot(varmx)
+plot(varmx$harmonics)
+
+dates[170]
