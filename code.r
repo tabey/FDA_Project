@@ -8,6 +8,7 @@ library(xts)
 library(zoo)
 library(dplyr)
 library(fda)
+library(robust)
 
 # Function to get monthly returns
 get_monthly_returns <- function(ticker) {
@@ -44,6 +45,7 @@ X <- coredata(combined_monthly_returns)
 
 # Covariance matrix
 cov_mat <- cov(X)
+# cov_mat <- covRob(X)$cov
 cov_inv <- solve(cov_mat)
 
 n <- nrow(X)
@@ -93,7 +95,7 @@ for (i in seq_along(lambda_vec)) {
   smooth_i <- smooth.basis(time_points, K, fdPar_i)
   gcv_mean[i] <- mean(smooth_i$gcv)  # average GCV across all curves
 }
-
+smooth_i$gcv
 # Select optimal lambda
 lambda_opt <- lambda_vec[which.min(gcv_mean)]
 
@@ -106,10 +108,11 @@ lambda_opt
 
 # Final smooth with optimal lambda
 fdPar_opt <- fdPar(basis, Lfdobj = 2, lambda = lambda_opt)
-fd_obj <- smooth.basis(time_points, K, fdPar_opt)$fd
+smoothb <- smooth.basis(time_points, K, fdPar_opt)
+fd_obj <- smoothb$fd
 
 # Individual curves
-# plotfit.fd(K, time_points, fd_obj)
+plotfit.fd(K, time_points, smooth.basis(time_points, K, fdPar_opt)$fd, type='l')
 
 plot(fd_obj, lwd=0.5, xlab = "Time", ylab = "Similarity",
      main = "Smoothed Similarity Curves (GCV-optimized)")
@@ -143,17 +146,62 @@ contour(time, time, logprecvar_mat,
         lwd=2,
         labcex=1)
 
+# The diagonal of the covariance matrix
+variances <- diag(logprecvar_mat)
+
+# Standard deviations
+std_devs <- sqrt(variances)
+
+# Outer product
+outer_std <- outer(std_devs, std_devs)
+
+# Correlation surface
+correlation_mat <- logprecvar_mat / outer_std
+
+persp(time, time, correlation_mat,
+      theta=-45, phi=25, r=3, expand = 0.5,
+      ticktype='detailed',
+      xlab="Month",
+      ylab="Month",
+      zlab="Correlation")
+
+contour(time, time, correlation_mat,
+        col=terrain.colors(12),
+        xlab="Month",
+        ylab="Month",
+        lwd=2,
+        labcex=1)
+
+# Maybe outliers here later
+library(fdaoutlier)
+tt <- seq(1,314,length=314)
+lgp <- eval.fd(tt,fd_obj)
+
+fbplot(lgp, method="BD2")
+fbplot(lgp, method="MBD")
+fbplot(lgp, method="Both")
+
+fboxplot(data = smoothb, plot.type = "bivariate", ylim=c(-3,3), xlim=c(-5,8),
+         type = "bag", projmethod="PCAproj")
+
+
+foutliers(smoothb, method = "robMah")
+# doesn't work?
+# foutliers(smoothb, method = "lrt")
+# foutliers(smoothb, method = "depth.trim")
+# foutliers(smoothb, method = "depth.pond")
+# foutliers(smoothb, method = "HUoutliers")
 
 # FPCA
-nharm = 3
+par(mfrow=c(2,2))
+nharm = 4
 pcalist = pca.fd(fd_obj, nharm, centerfns = TRUE)
 plot(pcalist)
 
+par(mfrow=c(1,1))
 plot(pcalist$harmonics, lwd=2)
 
-# Rotation
-varmx <- varmx.pca.fd(pcalist)
-plot(varmx)
-plot(varmx$harmonics)
-
-dates[170]
+# Rotation (useless?)
+# varmx <- varmx.pca.fd(pcalist)
+# plot(varmx)
+# plot(varmx$harmonics)
