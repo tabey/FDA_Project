@@ -9,6 +9,7 @@ library(zoo)
 library(dplyr)
 library(fda)
 library(robust)
+library(changepoint)
 
 # Function to get monthly returns
 get_monthly_returns <- function(ticker) {
@@ -198,13 +199,18 @@ nharm = 4
 pcalist = pca.fd(fd_obj, nharm, centerfns = TRUE)
 plot(pcalist)
 
-par(mfrow=c(1,1))
-plot(pcalist$harmonics, lwd=2)
+# Extract scores from existing pcalist
+scores <- pcalist$scores  # n x nharm matrix
 
-# Rotation (useless?)
-# varmx <- varmx.pca.fd(pcalist)
-# plot(varmx)
-# plot(varmx$harmonics)
+# PC1 score changepoints
+cpt_pc1 <- cpt.mean(scores[,1], method = "SegNeigh", penalty = "BIC", Q = 7)
+cptloc <- cpts(cpt_pc1)
+
+dates[cptloc]
+
+# Plot
+plot(scores[,1], type = "l", main = "PC1 Scores with Change-Points")
+abline(v = cpts(cpt_pc1), col = "red", lty = 2)
 
 # --- HYPOTHESIS TESTING: Recession vs. Expansion ---
 
