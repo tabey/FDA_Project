@@ -32,7 +32,7 @@ A Mahalanobis distance matrix **D** is computed over all pairs of months:
 
 $$D[i,j] = (X[i] − X[j])^T Σ^{-1} (X[i] − X[j])$$
 
-where Σ is the sample covariance matrix of returns. An RBF (Gaussian) kernel is then applied:
+where Σ is the sample covariance matrix of returns. An RBF kernel is then applied:
 
 $$K[i,j] = exp(−γ · D[i,j])$$
 
