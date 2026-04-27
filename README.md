@@ -30,7 +30,7 @@ Monthly discrete returns are computed from adjusted closing prices fetched via `
 
 A Mahalanobis distance matrix **D** is computed over all pairs of months:
 
-$$D[i,j] = (X[i] − X[j])^T Σ⁻¹ (X[i] − X[j])$$
+$$D[i,j] = (X[i] − X[j])^T Σ^{-1} (X[i] − X[j])$$
 
 where Σ is the sample covariance matrix of returns. An RBF (Gaussian) kernel is then applied:
 
